@@ -1,0 +1,182 @@
+---
+title: "Covid_19_Project"
+author: "Andrew Irani"
+date: "9/22/2020"
+output: html_document
+---
+
+A pneumonia of unknown cause detected in Wuhan, China was first internationally reported from China on 31 December 2019. Today we know this virus as Coronavirus. COVID-19 which stands for COronaVIrus Disease is the disease caused by this virus. Since then, the world has been engaged in the fight against this pandemic. Several measures have therefore been taken to "flatten the curve". We have consequently experienced social distancing and many people have passed away as well.
+
+In the solidarity to face this unprecedented global crisis, several organizations did not hesitate to share several datasets allowing the conduction of several kinds of analysis in order to understand this pandemic.
+
+It is natural for us to analyze these datasets by ourselves to answer questions since we cannot always rely on the news, and we are data scientists.
+
+This analysis tries to provide an answer to this question: **Which countries have had the highest number of positive cases against the number of tests?**
+
+# Step 1: Understanding the data
+```{r}
+#install.packages('tidyverse')
+library(tidyverse)
+```
+
+```{r}
+# Load the COVID dataset
+covid_df <- read.csv("covid19.csv")
+```
+
+```{r}
+# Data dimensions
+library(tibble)
+dim(covid_df)
+glimpse(covid_df)
+```
+
+```{r}
+# Display variables
+vector_cols <- colnames(covid_df)
+vector_cols
+```
+
+```{r}
+# Quick overview of the data
+head(covid_df)
+glimpse(covid_df)
+```
+
+# Step 2: Cleaning up data
+```{r}
+# Extract only country level data
+covid_df_all_states <- covid_df %>% 
+  filter(Province_State == "All States") %>% 
+         select(-Province_State)
+# After filtering for "All states" the Province_State column is no longer needed because that's all it contains
+```
+
+```{r}
+# Select the columns that are daily
+covid_df_all_states_daily <- covid_df_all_states %>% 
+  select(Date, Country_Region, active, hospitalizedCurr, daily_tested, daily_positive)
+
+```
+
+# Step 3: Summarize the data
+```{r}
+# For each country get the total number of tested, positive, active, and hosipitalized
+covid_df_all_states_daily_sum <- covid_df_all_states_daily %>% 
+  group_by(Country_Region) %>% 
+  summarise(tested_sum = sum(daily_tested),
+            positive_sum = sum(daily_positive),
+            active_sum = sum(active),
+            hospitalized_sum = sum(hospitalizedCurr)) %>% 
+              arrange(-tested_sum)
+covid_df_all_states_daily_sum
+            
+            
+            
+```
+
+```{r}
+# Store the top 10 countries
+covid_top_10 <- head(covid_df_all_states_daily_sum, 10)
+
+```
+
+# Step 4: Question = Which countries have had the highest number of postive cases against the number of tests
+```{r}
+# Answer the question using vectors
+countries <- covid_top_10$Country_Region
+tested_cases <- covid_top_10$tested_sum
+positive_cases <- covid_top_10$positive_sum
+active_cases <- covid_top_10$active_sum
+hospitalized_cases <- covid_top_10$hospitalized_sum
+
+```
+
+```{r}
+# Naming vectors
+names(positive_cases) <- countries
+names(tested_cases) <- countries
+names(active_cases) <- countries
+names(hospitalized_cases) <- countries
+```
+
+```{r}
+# Identify the top 3 countries
+positive_tested_division <- positive_cases/tested_cases
+positive_tested_division_sorted <- sort(positive_tested_division, decreasing = TRUE)
+positive_tested_division_sorted
+
+```
+
+```{r}
+# Display the top 3 countries
+positive_tested_top_3 <- c("United Kingdom = 0.11", "United States = 0.10", "Turkey = 0.08")
+
+```
+
+# Step 5: Complete the previous step using Tidyverse Dplyr
+```{r}
+# Same answer can be created using more robust code
+positive_tested_top_3_tidy <- covid_top_10 %>% 
+  group_by(Country_Region) %>% 
+  mutate(positive_vs_tested = positive_sum/tested_sum) %>% 
+  arrange(-positive_vs_tested) %>% 
+  select(positive_vs_tested, Country_Region) %>%
+  head(3)
+positive_tested_top_3_tidy
+
+
+```
+
+# Step 6: Create a matrix using the information from vectors
+```{r}
+# Create new vectors
+united_kingdom <- c(0.11, 1473672, 166909, 0, 0)
+united_states <- c(0.10, 17282363, 1877179, 0, 0)
+turkey <- c(0.08, 2031192, 163941, 2980960, 0)
+
+```
+
+```{r}
+# Create and display matrix using the vectors
+covid_mat <- rbind(united_kingdom, united_states, turkey)
+colnames(covid_mat) <- c("Ratio", "tested", "positive", "active", "hospitalized")
+covid_mat
+
+```
+
+
+# Step 7: Putting everything together using lists
+```{r}
+# Create question variable
+question <- "Which countries have had the highest number of positive cases against the number of tests?"
+
+# Create answer variable
+answer <- c("Positive tested cases" = positive_tested_top_3)
+
+```
+
+```{r}
+# Create a list that contains previous data structures
+dataframe <- list(covid_df, covid_df_all_states, covid_df_all_states_daily, covid_top_10)
+matrices <- list(covid_mat)
+vectors <- list(vector_cols, countries)
+data_structure_list <- list("dataframe" = dataframe, "matrix" = matrices, "vector" = vectors)
+covid_analysis_list <- list(question, answer, data_structure_list)
+
+```
+
+```{r}
+# Display the entire list
+covid_analysis_list[[2]]
+```
+
+# Step 8: Conclusion
+
+We can see the top 3 countries with the highest ratio of positive tests to the number of tests are the United Kingdom, United States and Turkey.
+<br>
+The project mainly focused on using the techniques learned in the section including vectors, lists and matrices. However all of these steps could have been done more efficiently with Dplyr. So, going forward I'll focus more on learning the tidyverse because it seems so intuitive.
+
+
+
+
